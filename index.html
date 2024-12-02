@@ -3,138 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Angel Meme Generator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f0f0f0;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .controls {
-            margin-bottom: 20px;
-        }
-        .controls label {
-            display: block;
-            margin: 10px 0 5px;
-        }
-        .controls input {
-            margin: 5px 0;
-            width: 100%;
-            max-width: 300px;
-            padding: 5px;
-        }
-        #canvas-container {
-            max-width: 100%;
-            overflow: auto;
-        }
-        canvas {
-            border: 1px solid #ccc;
-            max-width: 100%;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-    </style>
+    <title>Angels Meme Maker</title>
 </head>
 <body>
     <div class="container">
-        <h1>Angel Meme Generator</h1>
+        <h1>Angels Meme Maker</h1>
         
-        <div class="controls">
-            <label for="topText">Top Text:</label>
-            <input type="text" id="topText" placeholder="Enter top text">
-            
-            <label for="bottomText">Bottom Text:</label>
-            <input type="text" id="bottomText" placeholder="Enter bottom text">
-            
-            <label for="fontSize">Font Size:</label>
-            <input type="number" id="fontSize" value="40" min="10" max="100">
-            
-            <label for="imageWidth">Image Width (px):</label>
-            <input type="number" id="imageWidth" value="500" min="100" max="1000">
-            
-            <br>
-            <button onclick="downloadMeme()">Download Meme</button>
+        <div class="canvas-container">
+            <canvas id="memeCanvas" width="800" height="800"></canvas>
         </div>
-        
-        <div id="canvas-container">
-            <canvas id="memeCanvas"></canvas>
+
+        <div class="controls">
+            <div class="image-controls">
+                <h3>Custom Background (Optional)</h3>
+                <input type="file" id="imageInput" accept="image/*">
+                <button class="reset-button" id="resetBackground">Reset to Default Background</button>
+                
+                <h3>Overlay Image</h3>
+                <input type="file" id="overlayInput" accept="image/*">
+                <div id="overlayControls" style="display: none;">
+                    <input type="range" id="overlaySize" min="10" max="400" value="100">
+                    <button id="moveOverlay">Move Overlay (Click and drag)</button>
+                </div>
+            </div>
+
+            <div class="text-controls">
+                <h3>Top Text</h3>
+                <input type="text" id="topText" placeholder="Enter top text">
+                <input type="color" id="topTextColor" value="#ffffff">
+                <select id="topTextFont">
+                    <option value="Impact">Impact</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Comic Sans MS">Comic Sans</option>
+                </select>
+                <input type="range" id="topTextSize" min="12" max="72" value="36">
+
+                <h3>Bottom Text</h3>
+                <input type="text" id="bottomText" placeholder="Enter bottom text">
+                <input type="color" id="bottomTextColor" value="#ffffff">
+                <select id="bottomTextFont">
+                    <option value="Impact">Impact</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Comic Sans MS">Comic Sans</option>
+                </select>
+                <input type="range" id="bottomTextSize" min="12" max="72" value="36">
+            </div>
+
+            <button id="downloadMeme">Download Meme</button>
         </div>
     </div>
-
-    <script>
-        const canvas = document.getElementById('memeCanvas');
-        const ctx = canvas.getContext('2d');
-        const backgroundImage = new Image();
-        backgroundImage.src = 'data:image/jpeg;base64,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'; // Replace with Base64 of the angel image
-        
-        backgroundImage.onload = function() {
-            updateCanvas();
-        };
-
-        // Update canvas when any input changes
-        ['topText', 'bottomText', 'fontSize', 'imageWidth'].forEach(id => {
-            document.getElementById(id).addEventListener('input', updateCanvas);
-        });
-
-        function updateCanvas() {
-            const width = parseInt(document.getElementById('imageWidth').value);
-            const height = (width / backgroundImage.width) * backgroundImage.height;
-            
-            canvas.width = width;
-            canvas.height = height;
-
-            // Draw background image
-            ctx.drawImage(backgroundImage, 0, 0, width, height);
-
-            // Configure text style
-            const fontSize = parseInt(document.getElementById('fontSize').value);
-            ctx.font = `bold ${fontSize}px Arial`;
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = fontSize / 15;
-            ctx.textAlign = 'center';
-
-            // Draw top text
-            const topText = document.getElementById('topText').value;
-            if (topText) {
-                ctx.textBaseline = 'top';
-                ctx.strokeText(topText, width/2, 10);
-                ctx.fillText(topText, width/2, 10);
-            }
-
-            // Draw bottom text
-            const bottomText = document.getElementById('bottomText').value;
-            if (bottomText) {
-                ctx.textBaseline = 'bottom';
-                ctx.strokeText(bottomText, width/2, height - 10);
-                ctx.fillText(bottomText, width/2, height - 10);
-            }
-        }
-
-        function downloadMeme() {
-            const link = document.createElement('a');
-            link.download = 'angel-meme.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        }
-    </script>
 </body>
 </html>
