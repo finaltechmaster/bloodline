@@ -4,6 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Angels Meme Maker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .canvas-container {
+            position: relative;
+            margin: 20px 0;
+            text-align: center;
+        }
+        canvas {
+            max-width: 100%;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            cursor: move;
+        }
+        .controls {
+            margin: 20px 0;
+            display: grid;
+            gap: 10px;
+        }
+        .text-controls, .image-controls {
+            display: grid;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .reset-button {
+            background-color: #f44336;
+        }
+        .text-position-info {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -11,6 +73,7 @@
         
         <div class="canvas-container">
             <canvas id="memeCanvas" width="800" height="800"></canvas>
+            <div class="text-position-info">Click and drag to move text</div>
         </div>
 
         <div class="controls">
@@ -52,5 +115,151 @@
             <button id="downloadMeme">Download Meme</button>
         </div>
     </div>
+
+    <script>
+        const canvas = document.getElementById('memeCanvas');
+        const ctx = canvas.getContext('2d');
+        let backgroundImage = new Image();
+        let customBackgroundImage = null;
+        let overlayImage = null;
+        let overlayX = 0;
+        let overlayY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+
+        // Text positions
+        let topTextPos = { x: canvas.width/2, y: 50 };
+        let bottomTextPos = { x: canvas.width/2, y: canvas.height - 50 };
+        let selectedText = null;
+
+        // Initialize canvas
+        ctx.fillStyle = '#ddd';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Load default background
+        backgroundImage.src = '/path/to/your/default/image.jpg';
+        backgroundImage.onload = drawMeme;
+
+        // Mouse event handlers for text dragging
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            // Check if click is near text positions
+            const topText = document.getElementById('topText').value;
+            const bottomText = document.getElementById('bottomText').value;
+
+            ctx.font = `${document.getElementById('topTextSize').value}px ${document.getElementById('topTextFont').value}`;
+            const topMetrics = ctx.measureText(topText);
+            const bottomMetrics = ctx.measureText(bottomText);
+
+            if (Math.abs(x - topTextPos.x) < topMetrics.width/2 && Math.abs(y - topTextPos.y) < 30) {
+                selectedText = 'top';
+                isDragging = true;
+                dragStartX = x - topTextPos.x;
+                dragStartY = y - topTextPos.y;
+            } else if (Math.abs(x - bottomTextPos.x) < bottomMetrics.width/2 && Math.abs(y - bottomTextPos.y) < 30) {
+                selectedText = 'bottom';
+                isDragging = true;
+                dragStartX = x - bottomTextPos.x;
+                dragStartY = y - bottomTextPos.y;
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging && selectedText) {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+                if (selectedText === 'top') {
+                    topTextPos.x = x - dragStartX;
+                    topTextPos.y = y - dragStartY;
+                } else {
+                    bottomTextPos.x = x - dragStartX;
+                    bottomTextPos.y = y - dragStartY;
+                }
+                drawMeme();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            selectedText = null;
+        });
+
+        // Text input and style handlers
+        document.getElementById('topText').addEventListener('input', drawMeme);
+        document.getElementById('bottomText').addEventListener('input', drawMeme);
+        document.getElementById('topTextColor').addEventListener('input', drawMeme);
+        document.getElementById('bottomTextColor').addEventListener('input', drawMeme);
+        document.getElementById('topTextFont').addEventListener('change', drawMeme);
+        document.getElementById('bottomTextFont').addEventListener('change', drawMeme);
+        document.getElementById('topTextSize').addEventListener('input', drawMeme);
+        document.getElementById('bottomTextSize').addEventListener('input', drawMeme);
+
+        // Image handlers
+        document.getElementById('imageInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    customBackgroundImage = new Image();
+                    customBackgroundImage.onload = drawMeme;
+                    customBackgroundImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('resetBackground').addEventListener('click', () => {
+            customBackgroundImage = null;
+            drawMeme();
+        });
+
+        // Main drawing function
+        function drawMeme() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            if (customBackgroundImage) {
+                ctx.drawImage(customBackgroundImage, 0, 0, canvas.width, canvas.height);
+            } else if (backgroundImage.complete) {
+                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#ddd';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Draw texts
+            const topText = document.getElementById('topText').value;
+            const bottomText = document.getElementById('bottomText').value;
+            
+            // Top text
+            ctx.fillStyle = document.getElementById('topTextColor').value;
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            ctx.font = `${document.getElementById('topTextSize').value}px ${document.getElementById('topTextFont').value}`;
+            ctx.textAlign = 'center';
+            ctx.strokeText(topText, topTextPos.x, topTextPos.y);
+            ctx.fillText(topText, topTextPos.x, topTextPos.y);
+
+            // Bottom text
+            ctx.fillStyle = document.getElementById('bottomTextColor').value;
+            ctx.font = `${document.getElementById('bottomTextSize').value}px ${document.getElementById('bottomTextFont').value}`;
+            ctx.strokeText(bottomText, bottomTextPos.x, bottomTextPos.y);
+            ctx.fillText(bottomText, bottomTextPos.x, bottomTextPos.y);
+        }
+
+        // Download functionality
+        document.getElementById('downloadMeme').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'meme.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    </script>
 </body>
 </html>
