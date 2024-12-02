@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Meme Generator</title>
+    <title>Angel Meme Generator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -25,8 +25,11 @@
             display: block;
             margin: 10px 0 5px;
         }
-        .controls input, .controls button {
+        .controls input {
             margin: 5px 0;
+            width: 100%;
+            max-width: 300px;
+            padding: 5px;
         }
         #canvas-container {
             max-width: 100%;
@@ -43,6 +46,7 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            margin-top: 10px;
         }
         button:hover {
             background-color: #45a049;
@@ -51,12 +55,9 @@
 </head>
 <body>
     <div class="container">
-        <h1>Simple Meme Generator</h1>
+        <h1>Angel Meme Generator</h1>
         
         <div class="controls">
-            <label for="imageInput">Upload Image:</label>
-            <input type="file" id="imageInput" accept="image/*">
-            
             <label for="topText">Top Text:</label>
             <input type="text" id="topText" placeholder="Enter top text">
             
@@ -69,7 +70,7 @@
             <label for="imageWidth">Image Width (px):</label>
             <input type="number" id="imageWidth" value="500" min="100" max="1000">
             
-            <br><br>
+            <br>
             <button onclick="downloadMeme()">Download Meme</button>
         </div>
         
@@ -81,24 +82,12 @@
     <script>
         const canvas = document.getElementById('memeCanvas');
         const ctx = canvas.getContext('2d');
-        let memeImage = null;
-
-        // Handle image upload
-        document.getElementById('imageInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        memeImage = img;
-                        updateCanvas();
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+        const backgroundImage = new Image();
+        backgroundImage.src = 'data:image/jpeg;base64,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'; // Replace with Base64 of the angel image
+        
+        backgroundImage.onload = function() {
+            updateCanvas();
+        };
 
         // Update canvas when any input changes
         ['topText', 'bottomText', 'fontSize', 'imageWidth'].forEach(id => {
@@ -106,16 +95,14 @@
         });
 
         function updateCanvas() {
-            if (!memeImage) return;
-
             const width = parseInt(document.getElementById('imageWidth').value);
-            const height = (width / memeImage.width) * memeImage.height;
+            const height = (width / backgroundImage.width) * backgroundImage.height;
             
             canvas.width = width;
             canvas.height = height;
 
-            // Draw image
-            ctx.drawImage(memeImage, 0, 0, width, height);
+            // Draw background image
+            ctx.drawImage(backgroundImage, 0, 0, width, height);
 
             // Configure text style
             const fontSize = parseInt(document.getElementById('fontSize').value);
@@ -144,7 +131,7 @@
 
         function downloadMeme() {
             const link = document.createElement('a');
-            link.download = 'meme.png';
+            link.download = 'angel-meme.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
         }
